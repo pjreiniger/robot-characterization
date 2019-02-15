@@ -54,28 +54,28 @@ public class Robot extends TimedRobot {
 
 		stick = new Joystick(0);
 
-		leftFrontMotor = new WPI_TalonSRX(1);
-		leftFrontMotor.setInverted(false);
+		leftFrontMotor = new WPI_TalonSRX(3);
+		leftFrontMotor.setInverted(true);
 		leftFrontMotor.setSensorPhase(false);
 		leftFrontMotor.setNeutralMode(NeutralMode.Brake);
 
-		rightFrontMotor = new WPI_TalonSRX(2);
-		rightFrontMotor.setInverted(false);
+		rightFrontMotor = new WPI_TalonSRX(6);
+		rightFrontMotor.setInverted(true);
 		rightFrontMotor.setSensorPhase(true);
 		rightFrontMotor.setNeutralMode(NeutralMode.Brake);
 
 		// left rear follows front
-		WPI_TalonSRX leftRearMotor = new WPI_TalonSRX(3);
-		leftRearMotor.setInverted(false);
-		leftRearMotor.setSensorPhase(false);
+		WPI_TalonSRX leftRearMotor = new WPI_TalonSRX(1);
+		leftRearMotor.setInverted(true);
+		leftRearMotor.setSensorPhase(true);
 		leftRearMotor.follow(leftFrontMotor);
 		leftRearMotor.setNeutralMode(NeutralMode.Brake);
 
 		// right rear follows front
 		WPI_TalonSRX rightRearMotor = new WPI_TalonSRX(4);
-		rightRearMotor.setInverted(false);
+		rightRearMotor.setInverted(true);
 		rightRearMotor.setSensorPhase(true);
-		rightRearMotor.follow(rightRearMotor);
+		rightRearMotor.follow(rightFrontMotor);
 		rightRearMotor.setNeutralMode(NeutralMode.Brake);
 
 
@@ -95,7 +95,8 @@ public class Robot extends TimedRobot {
 		// ft and ft/s
 		//
 
-		double encoderConstant = (1 / ENCODER_PULSE_PER_REV) * WHEEL_DIAMETER * Math.PI;
+//		double encoderConstant = (1 / ENCODER_PULSE_PER_REV) * WHEEL_DIAMETER * Math.PI;
+		double encoderConstant = (1 / ENCODER_PULSE_PER_REV) * 16;
 
 		leftFrontMotor.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder, PIDIDX, 10);
 		leftEncoderPosition = () -> leftFrontMotor.getSelectedSensorPosition(PIDIDX) * encoderConstant;
@@ -148,6 +149,10 @@ public class Robot extends TimedRobot {
 		System.out.println("Robot in autonomous mode");
 	}
 
+	double lastRight = 0;
+	double lastLeft = 0;
+	double lastTime = 0;
+
 	/**
 	 * If you wish to just use your own robot program to use with the data logging
 	 * program, you only need to copy/paste the logic below into your code and
@@ -173,9 +178,24 @@ public class Robot extends TimedRobot {
 		double leftMotorVolts = leftFrontMotor.getMotorOutputVoltage();
 		double rightMotorVolts = rightFrontMotor.getMotorOutputVoltage();
 
+		double time = System.currentTimeMillis() * 1e-3;
+		double dt = time - lastTime;
+		double dl = leftPosition - lastLeft;
+		double dr = rightPosition - lastRight;
+
+		lastTime = time;
+		lastLeft = leftPosition;
+		lastRight = rightPosition;
+
+		System.out.println(
+				"Left (" + leftRate + ", " + (dl / .02) + ", " + (dl / dt) + ")" + 
+				"Right (" + rightRate + ", " + (dr / .02) + ", " + (dr / dt) + ")" + dt);
+
 		// Retrieve the commanded speed from NetworkTables
 		double autospeed = autoSpeedEntry.getDouble(0);
 		priorAutospeed = autospeed;
+
+		autospeed = 1;
 
 		// command motors to do things
 		drive.tankDrive(autospeed, autospeed, false);
